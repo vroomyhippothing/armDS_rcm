@@ -20,7 +20,7 @@ class EnableSwitch {
     swipePos=constrain(swipePos, -1, 1);
     if (enabled) {
       boolean pressed=mousescreen.readPressed(pointerID);
-      if (pressed&&!locked||keyboardCtrl.isPressed(ENTER)) {
+      if (pressed&&!locked) {
         enabled=false;
         locked=true;
       }
@@ -61,14 +61,11 @@ class EnableSwitch {
         fill(255, 255, 0);
         rect(x+constrain(w/2*swipePos, -w/2+h/2, w/2-h/2), y, h, h);
       }
-      if ((swipePos<=-1+h/w&&!locked)||(keyboardCtrl.isPressed('[')&&keyboardCtrl.isPressed(']'))) {
+      if ((swipePos<=-1+h/w&&!locked)) {
         locked=true;
         enabled=true;
       }
     } 
-    if (millis()-wifiReceivedMillis>wifiRetryPingTime*disableTimeMultiplier) {
-      enabled=false;
-    }
     return enabled;
   }
 }

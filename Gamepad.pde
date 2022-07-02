@@ -7,14 +7,15 @@ void setupGamepad(String device) {
   gamepadAvail=true;
   try {
     control = ControlIO.getInstance(this);
-    println(control.getDevices());
     gpad=control.getDevice(device);
-    if (gpad == null) {
+    if (gpad == null) {    
+      println(control.getDevices());
       gamepadAvail=false;
       return;
     }
   }
-  catch(Exception e) {
+  catch(Exception e) {    
+    println(control.getDevices());
     gamepadAvail=false;
     return;
   }

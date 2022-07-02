@@ -1,6 +1,6 @@
 import hypermedia.net.*;
 int wifiPort=25210;
-String wifiIP="10.25.21.1";
+String wifiIP="192.168.4.1";
 byte arrayToSend[]=new byte[255];
 byte wifiArrayCounter=0;
 int arrayRecvd[]=new int [255];
