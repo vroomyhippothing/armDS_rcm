@@ -1,8 +1,8 @@
 class Selector {
-  float xPos;
-  float yPos;
-  float sizeX;
-  float sizeY;
+  int xPos;
+  int yPos;
+  int sizeX;
+  int sizeY;
   boolean horizontal;
   color[] unSelected;
   color[] selected;
@@ -11,18 +11,20 @@ class Selector {
   int keyboardKeyPrev;
   String gamepadNext;
   String gamepadPrev;
+  String title;
 
   int[] mouseID;
   int value;
   int lastValue;
   boolean justPressed=false;
   boolean wasIncrementing=false;
-  Selector(float _xPos, float _yPos, float _sizeX, float _sizeY, boolean _horizontal, color[] _unSelected, color[] _selected, String[] _labels, int _keyboardKeyNext, int _keyboardKeyPrev, String _gamepadNext, String _gamepadPrev) {
+  Selector(int _xPos, int _yPos, int _sizeX, int _sizeY, boolean _horizontal, String _title, color[] _unSelected, color[] _selected, String[] _labels, int _keyboardKeyNext, int _keyboardKeyPrev, String _gamepadNext, String _gamepadPrev) {
     xPos=_xPos;
     yPos=_yPos;
     sizeX=_sizeX;
     sizeY=_sizeY;
     horizontal=_horizontal;
+    title=_title;
     unSelected=_unSelected;
     selected=_selected;
     labels=_labels;
@@ -40,11 +42,11 @@ class Selector {
       }
     }
     if (selected.length!=labels.length) {
-      println("ERROR: color[] selected and String[] labels must be the same length!");
+      println("ERROR: Selector: color[] selected and String[] labels must be the same length!");
       exit();
     }
     if (unSelected.length!=labels.length) {
-      println("ERROR: color[] unSelected and String[] labels must be the same length!");
+      println("ERROR: Selector: color[] unSelected and String[] labels must be the same length!");
       exit();
     }
   }
@@ -83,6 +85,8 @@ class Selector {
       }
     }
 
+    pushStyle();
+    noStroke();
 
     for (int i=0; i<labels.length; i++) {
       int xTemp;
@@ -100,8 +104,6 @@ class Selector {
         sizeXTemp=int(sizeX);
         sizeYTemp=int(sizeY/labels.length);
       }
-      pushStyle();
-      noStroke();
       if (value==i) {
         fill(selected[i]);
       } else {
@@ -116,8 +118,27 @@ class Selector {
       textSize(sizeYTemp/2);
       textAlign(CENTER, CENTER);
       text(labels[i], xTemp, yTemp, sizeXTemp, sizeYTemp);
-      popStyle();
     }
+
+    if (horizontal) {
+      noFill();
+      stroke(0);
+      strokeWeight(1);
+      rect(xPos-sizeX/labels.length, yPos, sizeX/labels.length, sizeY);
+      noStroke();
+      fill(0);
+      text(title, xPos-sizeX/labels.length, yPos, sizeX/labels.length, sizeY);
+    } else { //vertical
+      noFill();
+      stroke(0);
+      strokeWeight(1);
+      rect(xPos, yPos-sizeY/labels.length, sizeX, sizeY/labels.length);
+      noStroke();
+      fill(0);
+      text(title, xPos, yPos-sizeY/labels.length, sizeX, sizeY/labels.length);
+    }
+
+    popStyle();
 
     return value;
   }

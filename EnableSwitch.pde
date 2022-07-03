@@ -47,7 +47,7 @@ class EnableSwitch {
       fill(255);
       textSize(h*.4);
       text(" slide to", x, y, w, h);
-      textSize(h*.85);
+      textSize(h*.8);
       text("<-", x+w*.5, y, w, h);
       textSize(h*.4);
       text(" enable", x, y+h/2, w, h);
