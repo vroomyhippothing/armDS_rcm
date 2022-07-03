@@ -2,7 +2,7 @@
 
  
  libraries needed:
- "UDP" 
+ "UDP"
  "GameControlPlus"
  
  */
@@ -14,7 +14,7 @@ Selector compressorModeSelector;
 int compressorMode=1;
 
 Dial storedPressureDial;
-float storedPressure=0;
+float storedPressure;
 
 float batVolt=0.0;
 
@@ -43,7 +43,7 @@ void setup() {
     , new color[]{color(255, 190, 0), color(200, 255, 200), color(0, 210, 0)}
     , new String[]{"override", "normal", "off"}, 0, 0, "", "");
 
-  storedPressureDial=new Dial(width/2, height/2, width/8);
+  storedPressureDial=new Dial(int(width*.7), int(height*.68), width/10-3, "stored psi");
 }
 void draw() {
   background(200);
@@ -52,7 +52,8 @@ void draw() {
   }
   enabled=enableSwitch.run(enabled);
   compressorMode=compressorModeSelector.run(compressorMode);
-  storedPressureDial.run(map(mouseX, 0, width, -0, 160));
+  storedPressure=map(mouseX, 0, width, -10, 160);
+  storedPressureDial.run(storedPressure);
   /////////////////////////////////////add UI here
 
   String[] msg={"ping", "main voltage"};
