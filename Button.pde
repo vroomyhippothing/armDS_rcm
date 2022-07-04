@@ -58,7 +58,7 @@ class Button {
     }
     rect(xPos, yPos, size, size);
     fill(255);
-    textSize(size/4);
+    textSize(size/3);
     text(label, xPos, yPos, size, size);
     return val;
   }

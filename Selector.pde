@@ -12,13 +12,14 @@ class Selector {
   String gamepadNext;
   String gamepadPrev;
   String title;
+  color titleColor;
 
   int[] mouseID;
   int value;
   int lastValue;
   boolean justPressed=false;
   boolean wasIncrementing=false;
-  Selector(int _xPos, int _yPos, int _sizeX, int _sizeY, boolean _horizontal, String _title, color[] _unSelected, color[] _selected, String[] _labels, int _keyboardKeyNext, int _keyboardKeyPrev, String _gamepadNext, String _gamepadPrev) {
+  Selector(int _xPos, int _yPos, int _sizeX, int _sizeY, boolean _horizontal, String _title, color _titleColor, color[] _unSelected, color[] _selected, String[] _labels, int _keyboardKeyNext, int _keyboardKeyPrev, String _gamepadNext, String _gamepadPrev) {
     xPos=_xPos;
     yPos=_yPos;
     sizeX=_sizeX;
@@ -32,6 +33,7 @@ class Selector {
     keyboardKeyNext=_keyboardKeyNext;
     gamepadPrev=_gamepadPrev;
     gamepadNext=_gamepadNext;
+    titleColor=_titleColor;
 
     mouseID=new int[labels.length];
     for (int i=0; i<labels.length; i++) {
@@ -129,7 +131,7 @@ class Selector {
       fill(0);
       text(title, xPos-sizeX/labels.length, yPos, sizeX/labels.length, sizeY);
     } else { //vertical
-      noFill();
+      fill(titleColor);
       stroke(0);
       strokeWeight(1);
       rect(xPos, yPos-sizeY/labels.length, sizeX, sizeY/labels.length);

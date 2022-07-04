@@ -6,7 +6,9 @@ class DialKnob {
   int max;
   color c;
   int mouseID;
-  DialKnob(int _xPos, int _yPos, int _size, int _min, int _max, color _color) {
+  int lowerEdge;
+  int upperEdge;
+  DialKnob(int _xPos, int _yPos, int _size, int _min, int _max, color _color, int _lowerEdge, int _upperEdge) {
     xPos=_xPos;
     yPos=_yPos;
     size=_size;
@@ -14,6 +16,8 @@ class DialKnob {
     max=_max;
     c=_color;
     mouseID=mousescreen.registerZone(xPos, yPos, size, size);
+    lowerEdge=_lowerEdge;
+    upperEdge=_upperEdge;
   }
 
   float run(float inVal) {
@@ -33,7 +37,7 @@ class DialKnob {
     rotate(PI); //align to nicer frame of reference
     noStroke();
     fill(c); //color wedges to background
-    arc(0, 0, size, size, PI/max*(inVal-1), PI/max*(inVal+1));
+    arc(0, 0, size, size, PI/max*(inVal+lowerEdge), PI/max*(inVal+upperEdge));
     popMatrix();
     popStyle();
     return inVal;

@@ -8,7 +8,7 @@
  */
 int wifiPort=25210;
 String wifiIP="192.168.4.1";
-
+final int workingPressureConstant=60; //setting of regulator
 String gamepadName ="Controller (XBOX 360 For Windows)";
 /////////////////////////add interface elements and variables here
 EnableSwitch enableSwitch;
@@ -39,8 +39,19 @@ boolean clawAuto=false;
 DialKnob clawPressureDialKnob;
 float clawAutoPressure=0;
 
+DialKnob storedPressureSetpointDialKnob;
+float storedPressureSetpoint=120;
+
+
 Button clawGrabButton;
 boolean clawGrabAuto=false;
+
+boolean compressing=false;
+
+int timeCompressing=0;
+int timeCompresting=0;
+
+
 
 float batVolt=0.0;
 
@@ -58,33 +69,35 @@ void setup() {
 
   //setup UI here
   enableSwitch=new EnableSwitch(width/14, height/28, width/7, height/14);
-  compressorModeSelector=new Selector(int(width*.7), int(height*.86), width/10-3, height/6, false, "compressor"
+  compressorModeSelector=new Selector(int(width*.7), int(height*.92), width/10-3, height/10, false, "compressor", color(255, 0)
     , new color[]{color(55), color(55), color(65, 40, 40)}
     , new color[]{color(255, 190, 0), color(200, 255, 200), color(0, 210, 0)}
     , new String[]{"override (o)", "normal (l)", "off (.)"}, 0, 0, null, null);
 
   ArrayList<DialColorConfig> storedDialBackground=new ArrayList<DialColorConfig>();
-  storedDialBackground.add(new DialColorConfig(0, 60, color(255, 255, 0)));
-  storedDialBackground.add(new DialColorConfig(60, 120, color(0, 255, 0)));
-  storedDialBackground.add(new DialColorConfig(120, 140, color(255, 40, 40)));
+  storedDialBackground.add(new DialColorConfig(0, workingPressureConstant, color(255, 255, 0)));
+  storedDialBackground.add(new DialColorConfig(workingPressureConstant, 120, color(0, 255, 0)));
+  storedDialBackground.add(new DialColorConfig(120, 140, color(255, 80, 40)));
   storedPressureDial=new Dial(int(width*.695), int(height*.68), width/10-3, "stored psi", 0, 120, 140, 2, 10, 20, storedDialBackground);
 
-  ArrayList<DialColorConfig> workingDialBackground=new ArrayList<DialColorConfig>();
-  workingDialBackground.add(new DialColorConfig(50, 60, color(0, 255, 0)));
-  workingDialBackground.add(new DialColorConfig(60, 70, color(255, 40, 40)));
-  workingPressureDial=new Dial(int(width*.695), int(height*.49), width/10-3, "working psi", 0, 60, 70, 1, 10, 10, workingDialBackground);
-  clawPressureDial=new Dial(int(width*.695), int(width/20+height*.01), width/10-3, "claw psi", 0, 60, 70, 1, 10, 10, null);
+  storedPressureSetpointDialKnob=new DialKnob(storedPressureDial.xPos, storedPressureDial.yPos, storedPressureDial.size, storedPressureDial.min, storedPressureDial.max, color(255, 50, 255, 150), -10, 0);
 
-  clawPressureDialKnob=new DialKnob(clawPressureDial.xPos, clawPressureDial.yPos, clawPressureDial.size, clawPressureDial.min, clawPressureDial.max, color(255, 0, 255, 150));
+
+  ArrayList<DialColorConfig> workingDialBackground=new ArrayList<DialColorConfig>();
+  workingDialBackground.add(new DialColorConfig(workingPressureConstant-10, workingPressureConstant, color(0, 255, 0)));
+  workingDialBackground.add(new DialColorConfig(workingPressureConstant, workingPressureConstant+10, color(255, 40, 40)));
+  workingPressureDial=new Dial(int(width*.695), int(height*.49), width/10-3, "working psi", 0, workingPressureConstant, workingPressureConstant+10, 1, 10, 10, workingDialBackground);
+  clawPressureDial=new Dial(int(width*.695), int(width/20+height*.01), width/10-3, "claw psi", 0, workingPressureConstant, workingPressureConstant+10, 1, 10, 10, null);
+
+  clawPressureDialKnob=new DialKnob(clawPressureDial.xPos, clawPressureDial.yPos, clawPressureDial.size, clawPressureDial.min, clawPressureDial.max, color(255, 0, 255, 150), -1, 1);
 
   clawPressurizeSlider=new Slider(width*.685, height*.2975, height*.12, width*.03, 0, 1, color(0, 60, 0), color(255), null, 0, 0, .03, 0, false, false);
   clawVentButton=new Button(width*.72, height*.24, height*.06, color(100, 0, 0), color(200, 0, 0), "Button 5", 'v', true, false, "vent (v)");
   clawDumpButton=new Button(width*.72, height*.36, height*.05, color(150, 0, 0), color(255, 0, 0), null, ';', false, false, "DUMP    ( ; )");
   clawAutoButton=new Button(width*.72, height*.3, height*.05, color(50, 50, 200), color(200, 0, 200), null, 'p', false, false, "auto (p)");
   clawGrabButton=new Button(width*.68, height*.312, height*.075, color(25, 100, 25), color(255, 70, 255), null, 'i', false, false, "grab (i)");
-  if (!focused) {
-    println("HELLO");
-    //    ((java.awt.Canvas) surface.getNative()).requestFocus();
+  while (!focused) {
+    ((java.awt.Canvas) surface.getNative()).requestFocus();
   }
 }
 void draw() {
@@ -108,8 +121,23 @@ void draw() {
     if (key=='.')
       compressorMode=2;
   }
+  if (compressing) {
+    compressorModeSelector.titleColor=color(255, 255, 200);
+    timeCompressing++;
+  } else {
+    compressorModeSelector.titleColor=color(255, 0);
+    timeCompresting++;
+  }
   compressorMode=compressorModeSelector.run(compressorMode);
   storedPressureDial.run(storedPressure);
+  storedPressureSetpoint=storedPressureSetpointDialKnob.run(storedPressureSetpoint);
+  pushStyle(); //display knob setpoint
+  textSize(20);
+  fill(180, 0, 180);
+  textAlign(CENTER, CENTER);
+  text(nf(storedPressureSetpoint, 1, 1), width*.69, height*.70);
+  popStyle();
+
   workingPressureDial.run(workingPressure);
   clawPressureDial.run(clawPressure);
 
@@ -150,13 +178,16 @@ void draw() {
   }
 
   //fake pneumatics simulation
+
+  compressing=false;
   if (compressorMode!=2) {
-    if ((enabled&&compressorMode==1&&storedPressure<120)||(storedPressure<120&&compressorMode==0)) {
-      storedPressure+=(.1+(frameCount%4<=1?4:-4));
+    if ((enabled&&compressorMode==1&&storedPressure<storedPressureSetpoint)||(storedPressure<120&&compressorMode==0)) {
+      storedPressure+=(.1);
+      compressing=true;
     }
   }
 
-  float storedToWorkingFlow=(constrain(storedPressure, 0, 60)-workingPressure)*.09;
+  float storedToWorkingFlow=(constrain(storedPressure, 0, workingPressureConstant)-workingPressure)*.09;
 
   float workingToClawFlow=((workingPressure-clawPressure)*.09)*((workingPressure-clawPressure>0)?clawPressurize*.1:.2);
 
@@ -171,17 +202,22 @@ void draw() {
 
 
 
-  String[] msgc1={"enabled", "compressorMode", "clawAuto", "clawGrabAuto", "clawAutoPressure", "clawPressurize", "clawVent"};
-  String[] datac1={str(enabled), str(compressorMode), str(clawAuto), str(clawGrabAuto), nf(clawAutoPressure, 1, 2), nf(clawPressurize, 1, 3), str(clawVent)};
+  String[] msgc1={"enabled", "compressorMode", "clawAuto", "clawGrabAuto", "clawAutoPressure", "clawPressurize", "clawVent", "storedPressSetpoint"};
+  String[] datac1={str(enabled), str(compressorMode), str(clawAuto), str(clawGrabAuto), nf(clawAutoPressure, 1, 2), nf(clawPressurize, 1, 3), str(clawVent), nf(storedPressureSetpoint, 1, 3)};
   dispTelem(msgc1, datac1, width*13/16, height/4, width/8-1, height/2, 14, color(230, 240, 240));
 
-  String[] msgc2={};
-  String[] datac2={};
+  if (keyPressed&&key=='r') {
+    timeCompressing=0;
+    timeCompresting=0;
+  }
+
+  String[] msgc2={"time compressing", "time compresting", "compressor duty"};
+  String[] datac2={str(timeCompressing), str(timeCompresting), nf((float)timeCompressing/(timeCompressing+timeCompresting+(60*50)), 1, 5)};
   dispTelem(msgc2, datac2, width*15/16, height/4, width/8-1, height/2, 14, color(230, 240, 240));
 
 
-  String[] msgt1={"ping", "main voltage", "stored pressure", "working pressure", "claw pressure"};
-  String[] datat1={str(wifiPing), nf(batVolt, 1, 3), nf(storedPressure, 1, 3), nf(workingPressure, 1, 3), nf(clawPressure, 1, 3)};
+  String[] msgt1={"ping", "main voltage", "stored pressure", "working pressure", "claw pressure", "compressing"};
+  String[] datat1={str(wifiPing), nf(batVolt, 1, 3), nf(storedPressure, 1, 3), nf(workingPressure, 1, 3), nf(clawPressure, 1, 3), str(compressing)};
   dispTelem(msgt1, datat1, width*13/16, 3*height/4, width/8-1, height/2, 14, (millis()-wifiReceivedMillis>wifiRetryPingTime)?color(255, 200, 200):color(255, 255, 255));
 
   String[] msgt2={};
