@@ -24,7 +24,7 @@ class DialKnob {
       }
     }
     if (abs(mousePos.x)<1&&abs(mousePos.y)<1) {
-      inVal-=mouseWheel/5.0;
+      inVal-=mouseWheel/10.0;
     }
     inVal=constrain(inVal, min, max);
     pushStyle();

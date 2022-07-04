@@ -1,9 +1,9 @@
-void dispTelem(String[] msg, String[] val, int x, int y, int w, int h, int ts) {
+void dispTelem(String[] msg, String[] val, int x, int y, int w, int h, int ts, color c) {
   pushStyle();
   textSize(ts);
   stroke(0);
   strokeWeight(1);
-  fill(255);
+  fill(c);
   rect(x, y, w, h-1);
   fill(0);
   for (int i=0; i<msg.length; i++) {

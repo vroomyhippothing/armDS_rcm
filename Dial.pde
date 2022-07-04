@@ -71,7 +71,7 @@ class Dial {
     fill(0);
     textAlign(CENTER, CENTER);
     textSize(size*0.1);
-    text(str(inVal), 0, size*.4, size*.3, size*.15);
+    text(nfs(inVal, 1, 2), 0, size*.4, size*.3, size*.15);
     text(label, 0, size*.25, size*.7, size*.15);
     textSize(size*.075);
     fill(0);

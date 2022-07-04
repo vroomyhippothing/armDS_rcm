@@ -37,7 +37,10 @@ Button clawAutoButton;
 boolean clawAuto=false;
 
 DialKnob clawPressureDialKnob;
-float clawAutoPressure=25.21;
+float clawAutoPressure=0;
+
+Button clawGrabButton;
+boolean clawGrabAuto=false;
 
 float batVolt=0.0;
 
@@ -76,8 +79,13 @@ void setup() {
 
   clawPressurizeSlider=new Slider(width*.685, height*.2975, height*.12, width*.03, 0, 1, color(0, 60, 0), color(255), null, 0, 0, .03, 0, false, false);
   clawVentButton=new Button(width*.72, height*.24, height*.06, color(100, 0, 0), color(200, 0, 0), "Button 5", 'v', true, false, "vent (v)");
-  clawDumpButton=new Button(width*.72, height*.36, height*.05, color(150, 0, 0), color(255, 0, 0), null, 'd', false, false, "DUMP (d)");
+  clawDumpButton=new Button(width*.72, height*.36, height*.05, color(150, 0, 0), color(255, 0, 0), null, ';', false, false, "DUMP    ( ; )");
   clawAutoButton=new Button(width*.72, height*.3, height*.05, color(50, 50, 200), color(200, 0, 200), null, 'p', false, false, "auto (p)");
+  clawGrabButton=new Button(width*.68, height*.312, height*.075, color(25, 100, 25), color(255, 70, 255), null, 'i', false, false, "grab (i)");
+  if (!focused) {
+    println("HELLO");
+    //    ((java.awt.Canvas) surface.getNative()).requestFocus();
+  }
 }
 void draw() {
   background(200);
@@ -103,33 +111,82 @@ void draw() {
   compressorMode=compressorModeSelector.run(compressorMode);
   storedPressureDial.run(storedPressure);
   workingPressureDial.run(workingPressure);
-  clawPressureDial.run(workingPressure);
+  clawPressureDial.run(clawPressure);
 
 
   if (clawDumpButton.run()) {
     clawPressurize=1;
     clawVent=true;
     compressorMode=2;
-  } else {
-    if (clawAutoButton.run()) {
-      pushStyle();
-      textSize(20);
-      fill(0);
-      textAlign(CENTER, CENTER);
-      text("setpoint: "+nf(clawAutoPressure, 1, 2), width*.695, height*.23);
-      popStyle();
+    clawGrabAuto=false;
+  } else { //not dumping pressure
+    clawAutoButton.setVal(clawAuto);
+    clawAuto=clawAutoButton.run();
+    if (clawAuto) { //automatic pressure control
       clawAutoPressure=clawPressureDialKnob.run(clawAutoPressure);
-    } else {
+      pushStyle(); //display knob setpoint
+      textSize(20);
+      fill(180, 0, 180);
+      textAlign(CENTER, CENTER);
+      text(nf(clawAutoPressure, 1, 1), width*.695, height*.13);
+      popStyle();
+
+      clawGrabButton.setVal(clawGrabAuto);
+
+      if (gamepadVal("Z Axis", 0)<-.5) {
+        clawGrabButton.setVal(true);
+      }
+      if (gamepadButton(clawVentButton.gpButton, false)) {
+        clawGrabButton.setVal(false);
+      }
+
+      clawGrabAuto=clawGrabButton.run();
+    } else { //manual pressure control
+      clawGrabAuto=false;
       clawPressurize=constrain(-gamepadVal("Z Axis", 0), 0, 1);
       clawPressurize=clawPressurizeSlider.run(clawPressurize);
       clawVent=clawVentButton.run();
     }
   }
-  /////////////////////////////////////add UI here
 
-  String[] msg={"ping", "main voltage"};
-  String[] data={str(wifiPing), str(batVolt)};
-  dispTelem(msg, data, width*7/8, height/2, width/4-1, height, 14);
+  //fake pneumatics simulation
+  if (compressorMode!=2) {
+    if ((enabled&&compressorMode==1&&storedPressure<120)||(storedPressure<120&&compressorMode==0)) {
+      storedPressure+=(.1+(frameCount%4<=1?4:-4));
+    }
+  }
+
+  float storedToWorkingFlow=(constrain(storedPressure, 0, 60)-workingPressure)*.09;
+
+  float workingToClawFlow=((workingPressure-clawPressure)*.09)*((workingPressure-clawPressure>0)?clawPressurize*.1:.2);
+
+  storedPressure-=storedToWorkingFlow;
+  workingPressure+=storedToWorkingFlow;
+
+  workingPressure-=workingToClawFlow;
+
+  clawPressure+=5*(workingToClawFlow-(clawVent?clawPressure*0.01:0));
+
+  //end fake pneumatics simulation
+
+
+
+  String[] msgc1={"enabled", "compressorMode", "clawAuto", "clawGrabAuto", "clawAutoPressure", "clawPressurize", "clawVent"};
+  String[] datac1={str(enabled), str(compressorMode), str(clawAuto), str(clawGrabAuto), nf(clawAutoPressure, 1, 2), nf(clawPressurize, 1, 3), str(clawVent)};
+  dispTelem(msgc1, datac1, width*13/16, height/4, width/8-1, height/2, 14, color(230, 240, 240));
+
+  String[] msgc2={};
+  String[] datac2={};
+  dispTelem(msgc2, datac2, width*15/16, height/4, width/8-1, height/2, 14, color(230, 240, 240));
+
+
+  String[] msgt1={"ping", "main voltage", "stored pressure", "working pressure", "claw pressure"};
+  String[] datat1={str(wifiPing), nf(batVolt, 1, 3), nf(storedPressure, 1, 3), nf(workingPressure, 1, 3), nf(clawPressure, 1, 3)};
+  dispTelem(msgt1, datat1, width*13/16, 3*height/4, width/8-1, height/2, 14, (millis()-wifiReceivedMillis>wifiRetryPingTime)?color(255, 200, 200):color(255, 255, 255));
+
+  String[] msgt2={};
+  String[] datat2={};
+  dispTelem(msgt2, datat2, width*15/16, 3*height/4, width/8-1, height/2, 14, (millis()-wifiReceivedMillis>wifiRetryPingTime)?color(255, 200, 200):color(255, 255, 255));
 
   sendWifiData(true);
   mousePress=false;
