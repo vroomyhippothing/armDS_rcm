@@ -1,6 +1,4 @@
 import hypermedia.net.*;
-int wifiPort=25210;
-String wifiIP="192.168.4.1";
 byte arrayToSend[]=new byte[255];
 byte wifiArrayCounter=0;
 int arrayRecvd[]=new int [255];
@@ -9,7 +7,6 @@ long wifiReceivedMillis=0;
 long wifiSentMillis=0;
 long wifiPing=-1;
 static final int wifiRetryPingTime=800;
-static final float disableTimeMultiplier=8;
 void sendWifiData(boolean t) {
   if ((t&&millis()-wifiSentMillis>wifiRetryPingTime)||!t) {
     wifiPing=millis()-wifiSentMillis;

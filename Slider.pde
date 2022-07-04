@@ -31,27 +31,34 @@ class Slider {
     inc=_inc;
     horizontal=_horizontal;
     reverse=_reverse;
-    pointerID=mousescreen.registerZone(xPos, yPos, boolAB(horizontal, s, w), boolAB(horizontal, w, s));
+    pointerID=mousescreen.registerZone(xPos, yPos, boolAB(horizontal, s+w, w), boolAB(horizontal, w, s+w));
   }
   float run(float v) {
+    pushStyle();
     v=map(v, low, high, -1, 1);
     if (reverse) {
       v=-v;
     }
     noStroke();
     fill(background);
-    rect(xPos, yPos, boolAB(horizontal, s, w), boolAB(horizontal, w, s));
+    rect(xPos, yPos, boolAB(horizontal, s+w, w), boolAB(horizontal, w, s+w));
     v=gamepadVal(ga, v);
     v+=inc*keyboardCtrl.slider(0, pKey, mKey);
     if (horizontal)v=mousescreen.readPos(pointerID, new PVector(v, 0)).x;
     else v=mousescreen.readPos(pointerID, new PVector(0, v)).y;
+    v=map(v, -1, 1, -1-w/s, 1+w/s);
     v=constrain(v, -1, 1);
     fill(stick);
-    ellipse(xPos+boolAB(horizontal, s/2*v, 0), yPos-boolAB(horizontal, 0, s/2*v), w, w);
+    rect(xPos+boolAB(horizontal, s/2*v, 0), yPos-boolAB(horizontal, 0, s/2*v), w, w);
+    fill(0);
+    textAlign(CENTER, CENTER);
+    textSize(w*.25);
+    text(nfp(map(v, -1, 1, low, high), 1, 3), xPos+boolAB(horizontal, s/2*v, 0), yPos-boolAB(horizontal, 0, s/2*v), w, w/2);
     if (reverse) {
       v=-v;
     }
     v=map(v, -1, 1, low, high);
+    popStyle();
     return v;
   }
 }

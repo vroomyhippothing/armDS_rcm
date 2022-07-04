@@ -1,5 +1,6 @@
 Mousescreen mousescreen;
 boolean mousePress=false;
+float mouseWheel=0;
 class Mousescreen {
   ArrayList<MouseZone> zones;
   Mousescreen() {
@@ -24,8 +25,11 @@ class Mousescreen {
     zones.set(id, zone);
     return zone.touched;
   }
-
   PVector readPos(int id, PVector v) {
+    return readPos(id, v, false);
+  }
+
+  PVector readPos(int id, PVector v, boolean always) {
     MouseZone zone=zones.get(id);
     if (abs(mouseX-zone.x)<zone.w/2&&abs(mouseY-zone.y)<zone.h/2&&mousePress) {
       zone.touched=true;
@@ -33,8 +37,8 @@ class Mousescreen {
     if (!mousePressed) {
       zone.touched=false;
     }
-    if (zone.touched) {
-      v.set(constrain((mouseX-zone.x)/zone.w*2, -1, 1), constrain(((-mouseY+zone.y)/zone.h*2), -1, 1));
+    if (zone.touched||always) {
+      v.set(((mouseX-zone.x)/zone.w*2), (((-mouseY+zone.y)/zone.h*2)));
     }
     zones.set(id, zone);
     return v;
