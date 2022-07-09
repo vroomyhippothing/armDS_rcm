@@ -49,7 +49,7 @@ class Dial {
       noStroke();
       for (DialColorConfig b : background) {
         fill(b.c); //color wedges to background
-        arc(0, 0, size, size, PI/max*b.min, PI/max*b.max);
+        arc(0, 0, size-3, size-3, PI/max*b.min, PI/max*b.max);
       }
       popMatrix();
     }
