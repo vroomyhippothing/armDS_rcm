@@ -9,6 +9,7 @@ String wifiIP="192.168.4.1";
 static final int wifiRetryPingTime=400;
 final int workingPressureConstant=60; //setting of regulator
 final float compressorDutyCycleLimit=9;
+final float compressorDutyCycleBounds=4;
 final int compressorSetpointHysteresis=15;
 final String gamepadName ="Controller (XBOX 360 For Windows)";
 /////////////////////////add interface elements and variables here
@@ -94,7 +95,7 @@ void setup() {
 
   ArrayList<DialColorConfig> compressorDutyBackground=new ArrayList<DialColorConfig>();
   compressorDutyBackground.add(new DialColorConfig(0, int(compressorDutyCycleLimit)-4, color(0, 255, 0)));
-  compressorDutyBackground.add(new DialColorConfig(int(compressorDutyCycleLimit)-4, int(compressorDutyCycleLimit)+4, color(255, 255, 0)));
+  compressorDutyBackground.add(new DialColorConfig(int(compressorDutyCycleLimit-compressorDutyCycleBounds), int(compressorDutyCycleLimit+compressorDutyCycleBounds), color(255, 255, 0)));
   compressorDutyBackground.add(new DialColorConfig(int(compressorDutyCycleLimit)+4, 100, color(255, 155, 155)));
   compressorDutyDial=new Dial(int(width*.722), int(height*.818), width/19, "duty %", 0, 50, 50, 1, 10, 10, compressorDutyBackground);
 
@@ -163,7 +164,9 @@ void draw() {
     //and opening both valves
     clawPressurize=1;
     clawVent=true;
-    compressorMode=CompressorMode.Off; //and turning the compressor off.
+    if (clawDumpButton.justPressed()) {
+      compressorMode=CompressorMode.Off; //and turning the compressor off.
+    }
     clawGrabAuto=false; //in regular manual mode, this variable is reset so when auto grab is selected the claw starts open.
   } else { //not dumping pressure
     clawAutoButton.setVal(clawAuto);
@@ -219,34 +222,35 @@ void draw() {
   ////end fake pneumatics simulation
 
 
+  //TODO: REMOVE THE FOLLOWING CODE USED FOR TESTING DUTY CYCLE CALCULATOR IN SIMULATION
+  if (keyPressed&&key=='r') {
+    timeCompressorOn=0;
+    timeCompressorOff=0;
+    compressorDuty=0;
+  }
+  if (compressing) {
+    timeCompressorOn+=1.0/frameRate;
+    //compressorDuty+=(1.0-compressorDuty)/frameRate/(55.0);
+  } else {
+    timeCompressorOff+=1.0/frameRate;
+    //compressorDuty+=(0.0-compressorDuty)/frameRate/(55.0);
+  }
+
+  if ((millis())%((long)1000*60*(5+55))<(long)1000*60*5) {
+    enabled=true;
+  } else {
+    enabled=false;
+  }
+  ////////////////////////END OF FAKE DUTY CYCLE CALCULATIONS
+
   //left
-  String[] msgc1={"enabled", "compressorMode", "storedPressSetpoint", "clawAuto", "clawGrabAuto", "clawAutoPressure", "clawPressurize", "clawVent"};
-  String[] datac1={str(enabled), str(compressorMode), nf(storedPressureSetpoint, 1, 3), str(clawAuto), str(clawGrabAuto), nf(clawAutoPressure, 1, 2), nf(clawPressurize, 1, 3), str(clawVent)};
+  String[] msgc1={"time compress on", "time compress off", "compressor duty"};
+  String[] datac1={nf(timeCompressorOn, 1, 1), nf(timeCompressorOff, 1, 1), nf(compressorDuty, 1, 5)};
   dispTelem(msgc1, datac1, width*13/16, height/4, width/8-1, height/2, 14, color(230, 240, 240));
 
-  //TODO: REMOVE THE FOLLOWING CODE USED FOR TESTING DUTY CYCLE CALCULATOR IN SIMULATION
-  //if (keyPressed&&key=='r') {
-  //  timeCompressorOn=0;
-  //  timeCompressorOff=0;
-  //  //compressorDuty=0;
-  //}
-  //if (compressing) {
-  //  timeCompressorOn+=1.0/60;
-  //  compressorDuty+=(1.0-compressorDuty)/frameRate/(60.0*1/*period of time*/);
-  //} else {
-  //  timeCompressorOff+=1.0/60;
-  //  compressorDuty+=(0.0-compressorDuty)/frameRate/(60.0*1/*period of time*/);
-  //}
-
-  //if ((millis()/100)%(10*60)>10*30) {
-  //  storedPressure=115;
-  //} else {
-  //  storedPressure=80;
-  //}
-
   //right
-  String[] msgc2={"time compressing", "time compresting", "compressor duty"};
-  String[] datac2={nf(timeCompressorOn, 1, 1), nf(timeCompressorOff, 1, 1), nf(compressorDuty, 1, 5)};
+  String[] msgc2={"enabled", "compressorMode", "storedPressSetpoint", "clawAuto", "clawGrabAuto", "clawAutoPressure", "clawPressurize", "clawVent"};
+  String[] datac2={str(enabled), str(compressorMode), nf(storedPressureSetpoint, 1, 3), str(clawAuto), str(clawGrabAuto), nf(clawAutoPressure, 1, 2), nf(clawPressurize, 1, 3), str(clawVent)};
   dispTelem(msgc2, datac2, width*15/16, height/4, width/8-1, height/2, 14, color(230, 240, 240));
 
 
@@ -257,7 +261,7 @@ void draw() {
 
   //right
   String[] msgt2={"ping", "main voltage", "stored pressure", "working pressure", "claw pressure", "compressing", "clawPressValveState", "clawVentValveState"};
-  String[] datat2={nf(wifiPing, 3, 0), nf(mainVoltage, 1, 3), nf(storedPressure, 1, 3), nf(workingPressure, 1, 3), nf(clawPressure, 1, 3), str(compressing), nf(clawPressurizeValveState, 1, 3), str(clawVentValveState)};
+  String[] datat2={nf(wifiPing, 1, 0), nf(mainVoltage, 1, 3), nf(storedPressure, 1, 3), nf(workingPressure, 1, 3), nf(clawPressure, 1, 3), str(compressing), nf(clawPressurizeValveState, 1, 3), str(clawVentValveState)};
   dispTelem(msgt2, datat2, width*15/16, 3*height/4, width/8-1, height/2, 14, (millis()-wifiReceivedMillis>wifiRetryPingTime)?color(255, 200, 200):color(255, 255, 255));
 
 
