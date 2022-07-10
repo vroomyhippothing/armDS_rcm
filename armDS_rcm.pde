@@ -5,7 +5,7 @@
  
  */
 int wifiPort=25210;
-String wifiIP="192.168.43.248";//"192.168.4.1";
+String wifiIP="192.168.4.1";
 final int workingPressureConstant=60; //setting of regulator
 final float compressorDutyCycleLimit=9;
 final String gamepadName ="Controller (XBOX 360 For Windows)";

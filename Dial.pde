@@ -20,6 +20,7 @@ class Dial {
   int heavyMarkings;
   int labeledHeavyMarkings;
   ArrayList<DialColorConfig> background;
+  float smoothInVal;
   Dial(int _xPos, int _yPos, int _size, String _label, int _min, int _max, int _realMax, int _fineMarkings, int _heavyMarkings, int _labeledHeavyMarkings, ArrayList<DialColorConfig> _background) {
     xPos=_xPos;
     yPos=_yPos;
@@ -32,9 +33,11 @@ class Dial {
     heavyMarkings=_heavyMarkings;
     labeledHeavyMarkings=_labeledHeavyMarkings;
     background=_background;
+    smoothInVal=0;
   }
 
   void run(float inVal) {
+    smoothInVal=inVal*.25+smoothInVal*.75;
     pushStyle();
     pushMatrix();
     fill(255);
@@ -56,7 +59,7 @@ class Dial {
 
     pushMatrix(); // rotate dial
     rotate(-PI/2);
-    rotate(map(inVal, min, max, 0, PI)); //rotate dial
+    rotate(map(smoothInVal, min, max, 0, PI)); //rotate dial
     pushMatrix(); //shifting triangle backwards
     translate(0, size*.2);
     noStroke();
