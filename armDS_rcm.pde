@@ -6,8 +6,10 @@
  */
 int wifiPort=25210;
 String wifiIP="192.168.4.1";
+static final int wifiRetryPingTime=400;
 final int workingPressureConstant=60; //setting of regulator
 final float compressorDutyCycleLimit=9;
+final int compressorSetpointHysteresis=15;
 final String gamepadName ="Controller (XBOX 360 For Windows)";
 /////////////////////////add interface elements and variables here
 EnableSwitch enableSwitch;
@@ -19,7 +21,7 @@ public static class CompressorMode {
   static byte Normal=1;
   static byte Override=0;
 }
-byte compressorMode=CompressorMode.Off;
+byte compressorMode=CompressorMode.Normal;
 boolean compressing=false;
 
 Dial storedPressureDial;
@@ -43,10 +45,10 @@ Button clawAutoButton;
 boolean clawAuto=false;
 
 DialKnob clawPressureDialKnob;
-float clawAutoPressure=0;
+float clawAutoPressure=10;
 
 DialKnob storedPressureSetpointDialKnob;
-float storedPressureSetpoint=105;
+float storedPressureSetpoint=110;
 
 Dial compressorDutyDial;
 float compressorDuty=0;
@@ -56,6 +58,8 @@ boolean clawGrabAuto=false;
 
 float timeCompressorOn=0;
 float timeCompressorOff=0;
+float clawPressurizeValveState=0;
+boolean clawVentValveState=false;
 
 float mainVoltage=0.0;
 
@@ -68,6 +72,7 @@ void setup() {
   mousescreen=new Mousescreen();
   keyboardCtrl=new KeyboardCtrl();
   udp = new UDP(this);
+  udp.setBuffer(255);
   udp.listen(true);  
   setupGamepad(gamepadName);
 
@@ -84,7 +89,7 @@ void setup() {
   storedDialBackground.add(new DialColorConfig(120, 140, color(255, 80, 40)));
   storedPressureDial=new Dial(int(width*.695), int(height*.68), width/10-3, "stored psi", 0, 120, 140, 2, 10, 20, storedDialBackground);
 
-  storedPressureSetpointDialKnob=new DialKnob(storedPressureDial.xPos, storedPressureDial.yPos, storedPressureDial.size, storedPressureDial.min, storedPressureDial.max, color(255, 50, 255, 150), -10, 0);
+  storedPressureSetpointDialKnob=new DialKnob(storedPressureDial.xPos, storedPressureDial.yPos, storedPressureDial.size, storedPressureDial.min, storedPressureDial.realMax, int(storedPressureDial.realMax*180.0/storedPressureDial.max), color(200, 25, 255, 150), -compressorSetpointHysteresis, 0);
 
 
   ArrayList<DialColorConfig> compressorDutyBackground=new ArrayList<DialColorConfig>();
@@ -101,7 +106,7 @@ void setup() {
   workingPressureDial=new Dial(int(width*.695), int(height*.49), width/10-3, "working psi", 0, workingPressureConstant, workingPressureConstant+10, 1, 10, 10, workingDialBackground);
   clawPressureDial=new Dial(int(width*.695), int(width/20+height*.01), width/10-3, "claw psi", 0, workingPressureConstant, workingPressureConstant+10, 1, 10, 10, null);
 
-  clawPressureDialKnob=new DialKnob(clawPressureDial.xPos, clawPressureDial.yPos, clawPressureDial.size, clawPressureDial.min, clawPressureDial.max, color(255, 0, 255, 150), -1, 1);
+  clawPressureDialKnob=new DialKnob(clawPressureDial.xPos, clawPressureDial.yPos, clawPressureDial.size, clawPressureDial.min, clawPressureDial.realMax, int(clawPressureDial.realMax*180.0/clawPressureDial.max), color(255, 0, 255, 150), -1, 1);
 
   clawPressurizeSlider=new Slider(width*.685, height*.2975, height*.12, width*.03, 0, 1, color(0, 60, 0), color(255), null, 0, 0, .03, 0, false, false);
   clawVentButton=new Button(width*.72, height*.24, height*.06, color(100, 0, 0), color(200, 0, 0), "Button 5", 'v', true, false, "vent (v)");
@@ -120,8 +125,6 @@ void draw() {
   }
   if (keyboardCtrl.isPressed(' ')||keyboardCtrl.isPressed(ENTER)||gamepadButton("Button 6", false)) { //disable
     enabled=false;
-    if (compressorMode==CompressorMode.Override) // when disabled, turn off compressor override
-      compressorMode=CompressorMode.Normal; //TODO: REMOVE? (if override no longer overrides enable state)
   }
   enabled=enableSwitch.run(enabled);
 
@@ -216,7 +219,7 @@ void draw() {
   ////end fake pneumatics simulation
 
 
-
+  //left
   String[] msgc1={"enabled", "compressorMode", "storedPressSetpoint", "clawAuto", "clawGrabAuto", "clawAutoPressure", "clawPressurize", "clawVent"};
   String[] datac1={str(enabled), str(compressorMode), nf(storedPressureSetpoint, 1, 3), str(clawAuto), str(clawGrabAuto), nf(clawAutoPressure, 1, 2), nf(clawPressurize, 1, 3), str(clawVent)};
   dispTelem(msgc1, datac1, width*13/16, height/4, width/8-1, height/2, 14, color(230, 240, 240));
@@ -241,19 +244,22 @@ void draw() {
   //  storedPressure=80;
   //}
 
-
+  //right
   String[] msgc2={"time compressing", "time compresting", "compressor duty"};
   String[] datac2={nf(timeCompressorOn, 1, 1), nf(timeCompressorOff, 1, 1), nf(compressorDuty, 1, 5)};
   dispTelem(msgc2, datac2, width*15/16, height/4, width/8-1, height/2, 14, color(230, 240, 240));
 
 
-  String[] msgt1={"ping", "main voltage", "stored pressure", "working pressure", "claw pressure", "compressing"};
-  String[] datat1={str(wifiPing), nf(mainVoltage, 1, 3), nf(storedPressure, 1, 3), nf(workingPressure, 1, 3), nf(clawPressure, 1, 3), str(compressing)};
+  //left
+  String[] msgt1={};
+  String[] datat1={};
   dispTelem(msgt1, datat1, width*13/16, 3*height/4, width/8-1, height/2, 14, (millis()-wifiReceivedMillis>wifiRetryPingTime)?color(255, 200, 200):color(255, 255, 255));
 
-  String[] msgt2={};
-  String[] datat2={};
+  //right
+  String[] msgt2={"ping", "main voltage", "stored pressure", "working pressure", "claw pressure", "compressing", "clawPressValveState", "clawVentValveState"};
+  String[] datat2={nf(wifiPing, 3, 0), nf(mainVoltage, 1, 3), nf(storedPressure, 1, 3), nf(workingPressure, 1, 3), nf(clawPressure, 1, 3), str(compressing), nf(clawPressurizeValveState, 1, 3), str(clawVentValveState)};
   dispTelem(msgt2, datat2, width*15/16, 3*height/4, width/8-1, height/2, 14, (millis()-wifiReceivedMillis>wifiRetryPingTime)?color(255, 200, 200):color(255, 255, 255));
+
 
   sendWifiData(true);
   mousePress=false;
@@ -266,6 +272,8 @@ void WifiDataToRecv() {
   clawPressure=recvFl();
   compressing=recvBl();
   compressorDuty=recvFl();
+  clawPressurizeValveState=recvFl();
+  clawVentValveState=recvBl();
 }
 void WifiDataToSend() {
   sendBl(enabled);

@@ -21,6 +21,7 @@ class Dial {
   int labeledHeavyMarkings;
   ArrayList<DialColorConfig> background;
   float smoothInVal;
+  int mouseID;
   Dial(int _xPos, int _yPos, int _size, String _label, int _min, int _max, int _realMax, int _fineMarkings, int _heavyMarkings, int _labeledHeavyMarkings, ArrayList<DialColorConfig> _background) {
     xPos=_xPos;
     yPos=_yPos;
@@ -33,11 +34,14 @@ class Dial {
     heavyMarkings=_heavyMarkings;
     labeledHeavyMarkings=_labeledHeavyMarkings;
     background=_background;
-    smoothInVal=0;
+    smoothInVal=0;    
+    mouseID=mousescreen.registerZone(xPos, yPos, size, size);
   }
 
   void run(float inVal) {
-    smoothInVal=inVal*.25+smoothInVal*.75;
+    if (!(mousescreen.readPressed(mouseID)&&mouseButton==RIGHT)) { // freeze dial if right clicked
+      smoothInVal=inVal*.25+smoothInVal*.75;
+    }
     pushStyle();
     pushMatrix();
     fill(255);
@@ -74,7 +78,7 @@ class Dial {
     fill(0);
     textAlign(CENTER, CENTER);
     textSize(size*0.1);
-    text(nfs(inVal, 1, 2), 0, size*.4, size*.4, size*.15);
+    text(nfs(smoothInVal, 1, 2), 0, size*.4, size*.4, size*.15);
     text(label, 0, size*.25, size*.7, size*.15);
     textSize(size*.075);
     fill(0);
