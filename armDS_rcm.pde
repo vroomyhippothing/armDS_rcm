@@ -57,8 +57,10 @@ float compressorDuty=0;
 Button clawGrabButton;
 boolean clawGrabAuto=false;
 
-float timeCompressorOn=0;
-float timeCompressorOff=0;
+float timeCompressorOn=0;  // calculated in driverstation
+float timeCompressorOff=0; // calculated in driverstation
+
+boolean isCompressorOverDutyCycle=false;
 float clawPressurizeValveState=0;
 boolean clawVentValveState=false;
 
@@ -140,10 +142,29 @@ void draw() {
   }
   //"compressor on" light and compressor mode selector
   if (compressing) {
-    compressorModeSelector.titleColor=color(255, 255, 200);
+    compressorModeSelector.titleColor=color(255, 255, 225);
   } else {
     compressorModeSelector.titleColor=color(255, 0);
   }
+  pushStyle();
+  noStroke();
+  String tempCompressorMessage="";
+  if (isCompressorOverDutyCycle==false) {
+    fill(25, 200, 25);
+    tempCompressorMessage="compressor NORMAL";
+  } else if (!compressing) {
+    fill(225, 255, 0);    
+    tempCompressorMessage="compressor COOLING";
+  } else { // overriden
+    fill(255, 130, 85);    
+    tempCompressorMessage="compressor OVERLOAD";
+  }
+  rect(int(width*.672), int(height*.825), width*.04, height*.07);
+  textAlign(CENTER, CENTER);
+  textSize(12);
+  fill(0);
+  text(tempCompressorMessage, int(width*.672), int(height*.825), width*.04, height*.07);
+  popStyle();
   compressorMode=byte(compressorModeSelector.run(compressorMode));
 
   compressorDutyDial.run(compressorDuty*100);
@@ -236,16 +257,16 @@ void draw() {
     //compressorDuty+=(0.0-compressorDuty)/frameRate/(55.0);
   }
 
-  if ((millis())%((long)1000*60*(5+55))<(long)1000*60*5) {
-    enabled=true;
-  } else {
-    enabled=false;
-  }
+  //if ((millis())%((long)1000*60*(5+55))<(long)1000*60*5) {
+  //  enabled=true;
+  //} else {
+  //  enabled=false;
+  //}
   ////////////////////////END OF FAKE DUTY CYCLE CALCULATIONS
 
   //left
-  String[] msgc1={"time compress on", "time compress off", "compressor duty"};
-  String[] datac1={nf(timeCompressorOn, 1, 1), nf(timeCompressorOff, 1, 1), nf(compressorDuty, 1, 5)};
+  String[] msgc1={"time compress on", "time compress off", "compressor duty", "dutyCalc"};
+  String[] datac1={nf(timeCompressorOn, 1, 1), nf(timeCompressorOff, 1, 1), nf(compressorDuty, 1, 5), nf(100.0*timeCompressorOn/(timeCompressorOff+timeCompressorOn), 2, 2)};
   dispTelem(msgc1, datac1, width*13/16, height/4, width/8-1, height/2, 14, color(230, 240, 240));
 
   //right
@@ -260,8 +281,8 @@ void draw() {
   dispTelem(msgt1, datat1, width*13/16, 3*height/4, width/8-1, height/2, 14, (millis()-wifiReceivedMillis>wifiRetryPingTime)?color(255, 200, 200):color(255, 255, 255));
 
   //right
-  String[] msgt2={"ping", "main voltage", "stored pressure", "working pressure", "claw pressure", "compressing", "clawPressValveState", "clawVentValveState"};
-  String[] datat2={nf(wifiPing, 1, 0), nf(mainVoltage, 1, 3), nf(storedPressure, 1, 3), nf(workingPressure, 1, 3), nf(clawPressure, 1, 3), str(compressing), nf(clawPressurizeValveState, 1, 3), str(clawVentValveState)};
+  String[] msgt2={"ping", "main voltage", "stored pressure", "working pressure", "claw pressure", "compressing", "clawPressValveState", "clawVentValveState", "compressorOverDuty"};
+  String[] datat2={nf(wifiPing, 1, 0), nf(mainVoltage, 1, 3), nf(storedPressure, 1, 3), nf(workingPressure, 1, 3), nf(clawPressure, 1, 3), str(compressing), nf(clawPressurizeValveState, 1, 3), str(clawVentValveState), str(isCompressorOverDutyCycle)};
   dispTelem(msgt2, datat2, width*15/16, 3*height/4, width/8-1, height/2, 14, (millis()-wifiReceivedMillis>wifiRetryPingTime)?color(255, 200, 200):color(255, 255, 255));
 
 
@@ -278,6 +299,7 @@ void WifiDataToRecv() {
   compressorDuty=recvFl();
   clawPressurizeValveState=recvFl();
   clawVentValveState=recvBl();
+  isCompressorOverDutyCycle=recvBl();
 }
 void WifiDataToSend() {
   sendBl(enabled);
