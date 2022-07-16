@@ -27,7 +27,11 @@ class EnableSwitch {
       if (!pressed) {
         locked=false;
       }
-      fill(155, 0, 0);
+      if (wifiPing==-1&&((millis()-wifiReceivedMillis)%1000<500)) {
+        fill(255, 0, 0);//warn that enabled but conneciton lost
+      } else {
+        fill(155, 0, 0);
+      }
       rect(x, y, w, h);
       fill(255);
       textAlign(CENTER);

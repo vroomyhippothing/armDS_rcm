@@ -6,11 +6,12 @@
  */
 int wifiPort=25210;
 String wifiIP="192.168.4.1";
-static final int wifiRetryPingTime=400;
+static final int wifiRetryPingTime=200;
 final int workingPressureConstant=60; //setting of regulator
 final float compressorDutyCycleLimit=9;
 final float compressorDutyCycleBounds=4;
 final int compressorSetpointHysteresis=15;
+final float pressureSwitchVal=115;//what's the lowest pressure where the pressure switch might shut off the compressor and prevent the software from having full control
 final String gamepadName ="Controller (XBOX 360 For Windows)";
 /////////////////////////add interface elements and variables here
 EnableSwitch enableSwitch;
@@ -156,14 +157,14 @@ void draw() {
     fill(225, 255, 0);    
     tempCompressorMessage="compressor COOLING";
   } else { // overriden
-    fill(255, 130, 85);    
+    fill(255, 130, 85);
     tempCompressorMessage="compressor OVERLOAD";
   }
-  rect(int(width*.672), int(height*.825), width*.04, height*.07);
+  rect(int(width*.672), int(height*.805), width*.04, height*.05, width*.01, width*.01, width*.01, width*.01);
   textAlign(CENTER, CENTER);
   textSize(12);
   fill(0);
-  text(tempCompressorMessage, int(width*.672), int(height*.825), width*.04, height*.07);
+  text(tempCompressorMessage, int(width*.672), int(height*.805), width*.04, height*.05);
   popStyle();
   compressorMode=byte(compressorModeSelector.run(compressorMode));
 
@@ -174,7 +175,11 @@ void draw() {
   storedPressureSetpoint=storedPressureSetpointDialKnob.run(storedPressureSetpoint);
   pushStyle(); //display knob setpoint value as text
   textSize(20);
-  fill(180, 0, 180);
+  if (storedPressureSetpoint>=pressureSwitchVal) {
+    fill(255, 0, 0);
+  } else {
+    fill(180, 0, 200);
+  }
   textAlign(CENTER, CENTER);
   text(nf(storedPressureSetpoint, 1, 1), width*.69, height*.70);
   popStyle();
