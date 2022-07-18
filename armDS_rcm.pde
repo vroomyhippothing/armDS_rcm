@@ -8,9 +8,9 @@ int wifiPort=25210;
 String wifiIP="192.168.4.1";
 static final int wifiRetryPingTime=200;
 final int workingPressureConstant=60; //setting of regulator
-final float compressorDutyCycleLimit=9;
-final float compressorDutyCycleBounds=4;
-final int compressorSetpointHysteresis=15;
+final float compressorDutyCycleLimit=9; // rating of compressor (%)
+final float compressorDutyCycleBounds=4; // how far from dutyCycleLimit does the duty cycle get while running at the maximum duty cycle?
+final int compressorSetpointHysteresis=15; // difference between when the compressor turns on and when it turns off
 final float pressureSwitchVal=115;//what's the lowest pressure where the pressure switch might shut off the compressor and prevent the software from having full control
 final String gamepadName ="Controller (XBOX 360 For Windows)";
 /////////////////////////add interface elements and variables here
@@ -44,10 +44,10 @@ float clawPressurize=0;
 Button clawDumpButton;
 
 Button clawAutoButton;
-boolean clawAuto=false;
+boolean clawAuto=true;
 
 DialKnob clawPressureDialKnob;
-float clawAutoPressure=10;
+float clawAutoPressure=30;
 
 DialKnob storedPressureSetpointDialKnob;
 float storedPressureSetpoint=110;
@@ -112,14 +112,11 @@ void setup() {
 
   clawPressureDialKnob=new DialKnob(clawPressureDial.xPos, clawPressureDial.yPos, clawPressureDial.size, clawPressureDial.min, clawPressureDial.realMax, int(clawPressureDial.realMax*180.0/clawPressureDial.max), color(255, 0, 255, 150), -1, 1);
 
-  clawPressurizeSlider=new Slider(width*.685, height*.2975, height*.12, width*.03, 0, 1, color(0, 60, 0), color(255), null, 0, 0, .03, 0, false, false);
-  clawVentButton=new Button(width*.72, height*.24, height*.06, color(100, 0, 0), color(200, 0, 0), "Button 5", 'v', true, false, "vent (v)");
-  clawDumpButton=new Button(width*.72, height*.36, height*.05, color(150, 0, 0), color(255, 0, 0), null, ';', false, false, "DUMP    ( ; )");
+  clawPressurizeSlider=new Slider(width*.68, height*.2975, height*.12, width*.03, 0, 1, color(0, 60, 0), color(255), null, 0, 0, .03, 0, false, false);
+  clawVentButton=new Button(width*.73, height*.22, height*.05, color(100, 0, 0), color(200, 0, 0), "Button 5", 'v', true, false, "vent (v)");
+  clawDumpButton=new Button(width*.737, height*.395, height*.04, color(150, 0, 0), color(255, 0, 0), null, ';', false, false, "DUMP    ( ; )");
   clawAutoButton=new Button(width*.72, height*.3, height*.05, color(50, 50, 200), color(200, 0, 200), null, 'p', false, false, "auto (p)");
   clawGrabButton=new Button(width*.68, height*.312, height*.075, color(25, 100, 25), color(255, 70, 255), null, 'i', false, false, "grab (i)");
-  while (!focused) {
-    ((java.awt.Canvas) surface.getNative()).requestFocus();
-  }
 }
 void draw() {
   background(200);
@@ -224,54 +221,20 @@ void draw() {
     }
   }
 
-  ////fake pneumatics simulation
-
-  //compressing=false;
-  //if (compressorMode!=CompressorMode.Off) {
-  //  if ((enabled&&compressorMode==CompressorMode.Normal&&storedPressure<storedPressureSetpoint)||(storedPressure<120&&compressorMode==CompressorMode.Override)) {
-  //    storedPressure+=(.1);
-  //    compressing=true;
-  //  }
-  //}
-
-  //float storedToWorkingFlow=(constrain(storedPressure, 0, workingPressureConstant)-workingPressure)*.09;
-
-  //float workingToClawFlow=((workingPressure-clawPressure)*.01)*(clawPressurize);
-
-  //storedPressure-=storedToWorkingFlow;
-  //workingPressure+=storedToWorkingFlow;
-
-  //workingPressure-=workingToClawFlow;
-
-  //clawPressure+=5*(workingToClawFlow-(clawVent?clawPressure*0.01:0));
-
-  ////end fake pneumatics simulation
-
-
-  //TODO: REMOVE THE FOLLOWING CODE USED FOR TESTING DUTY CYCLE CALCULATOR IN SIMULATION
+  //calculate compressor on and off times
   if (keyPressed&&key=='r') {
     timeCompressorOn=0;
     timeCompressorOff=0;
-    compressorDuty=0;
   }
   if (compressing) {
     timeCompressorOn+=1.0/frameRate;
-    //compressorDuty+=(1.0-compressorDuty)/frameRate/(55.0);
   } else {
     timeCompressorOff+=1.0/frameRate;
-    //compressorDuty+=(0.0-compressorDuty)/frameRate/(55.0);
   }
 
-  //if ((millis())%((long)1000*60*(5+55))<(long)1000*60*5) {
-  //  enabled=true;
-  //} else {
-  //  enabled=false;
-  //}
-  ////////////////////////END OF FAKE DUTY CYCLE CALCULATIONS
-
   //left
-  String[] msgc1={"time compress on", "time compress off", "compressor duty", "dutyCalc"};
-  String[] datac1={nf(timeCompressorOn, 1, 1), nf(timeCompressorOff, 1, 1), nf(compressorDuty, 1, 5), nf(100.0*timeCompressorOn/(timeCompressorOff+timeCompressorOn), 2, 2)};
+  String[] msgc1={"time compress on", "time compress off", "compressor duty t"};
+  String[] datac1={nf(timeCompressorOn, 1, 1), nf(timeCompressorOff, 1, 1), nf(100.0*timeCompressorOn/(timeCompressorOff+timeCompressorOn), 2, 2)};
   dispTelem(msgc1, datac1, width*13/16, height/4, width/8-1, height/2, 14, color(230, 240, 240));
 
   //right
@@ -286,8 +249,8 @@ void draw() {
   dispTelem(msgt1, datat1, width*13/16, 3*height/4, width/8-1, height/2, 14, (millis()-wifiReceivedMillis>wifiRetryPingTime)?color(255, 200, 200):color(255, 255, 255));
 
   //right
-  String[] msgt2={"ping", "main voltage", "stored pressure", "working pressure", "claw pressure", "compressing", "clawPressValveState", "clawVentValveState", "compressorOverDuty"};
-  String[] datat2={nf(wifiPing, 1, 0), nf(mainVoltage, 1, 3), nf(storedPressure, 1, 3), nf(workingPressure, 1, 3), nf(clawPressure, 1, 3), str(compressing), nf(clawPressurizeValveState, 1, 3), str(clawVentValveState), str(isCompressorOverDutyCycle)};
+  String[] msgt2={"ping", "main voltage", "stored pressure", "working pressure", "claw pressure", "compressing", "clawPressValveState", "clawVentValveState", "compressorDuty", "compressorOverDuty"};
+  String[] datat2={nf(wifiPing, 1, 0), nf(mainVoltage, 1, 3), nf(storedPressure, 1, 3), nf(workingPressure, 1, 3), nf(clawPressure, 1, 3), str(compressing), nf(clawPressurizeValveState, 1, 3), str(clawVentValveState), nf(compressorDuty, 1, 5), str(isCompressorOverDutyCycle)};
   dispTelem(msgt2, datat2, width*15/16, 3*height/4, width/8-1, height/2, 14, (millis()-wifiReceivedMillis>wifiRetryPingTime)?color(255, 200, 200):color(255, 255, 255));
 
 
