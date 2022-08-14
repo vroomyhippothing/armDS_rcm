@@ -5,7 +5,7 @@
  
  */
 int wifiPort=25210;
-String wifiIP="192.168.4.1";
+String wifiIP="192.168.43.52";
 static final int wifiRetryPingTime=200;
 final int workingPressureConstant=60; //setting of regulator
 final float compressorDutyCycleLimit=9; // rating of compressor (%)
@@ -84,7 +84,7 @@ void setup() {
   enableSwitch=new EnableSwitch(width/14, height/28, width/7, height/14);
   compressorModeSelector=new Selector(int(width*.7), int(height*.92), width/10-3, height/10, false, "compressor", color(255, 0)
     , new color[]{color(55), color(55), color(65, 40, 40)}
-    , new color[]{color(255, 190, 0), color(200, 255, 200), color(0, 210, 0)}
+    , new color[]{color(255, 140, 0), color(200, 255, 200), color(0, 210, 0)}
     , new String[]{"override (o)", "normal (l)", "off (.)"}, 0, 0, null, null);
 
   ArrayList<DialColorConfig> storedDialBackground=new ArrayList<DialColorConfig>();
@@ -169,17 +169,20 @@ void draw() {
   workingPressureDial.run(workingPressure);
   clawPressureDial.run(clawPressure);
   storedPressureDial.run(storedPressure);
-  storedPressureSetpoint=storedPressureSetpointDialKnob.run(storedPressureSetpoint);
-  pushStyle(); //display knob setpoint value as text
-  textSize(20);
-  if (storedPressureSetpoint>=pressureSwitchVal) {
-    fill(255, 0, 0);
-  } else {
-    fill(180, 0, 200);
+
+  if (compressorMode!=CompressorMode.Override) {
+    storedPressureSetpoint=storedPressureSetpointDialKnob.run(storedPressureSetpoint);
+    pushStyle(); //display knob setpoint value as text
+    textSize(20);
+    if (storedPressureSetpoint>=pressureSwitchVal) {
+      fill(255, 0, 0);
+    } else {
+      fill(180, 0, 200);
+    }
+    textAlign(CENTER, CENTER);
+    text(nf(storedPressureSetpoint, 1, 1), width*.69, height*.70);
+    popStyle();
   }
-  textAlign(CENTER, CENTER);
-  text(nf(storedPressureSetpoint, 1, 1), width*.69, height*.70);
-  popStyle();
 
   //claw control UI logic
   if (clawDumpButton.run()) { // the dump button is on the driverstation side, it is identical to:
@@ -235,12 +238,12 @@ void draw() {
   //left
   String[] msgc1={"time compress on", "time compress off", "compressor duty t"};
   String[] datac1={nf(timeCompressorOn, 1, 1), nf(timeCompressorOff, 1, 1), nf(100.0*timeCompressorOn/(timeCompressorOff+timeCompressorOn), 2, 2)};
-  dispTelem(msgc1, datac1, width*13/16, height/4, width/8-1, height/2, 14, color(230, 240, 240));
+  dispTelem(msgc1, datac1, width*13/16, height/4, width/8-1, height/2, 14, color(240, 240, 240));
 
   //right
   String[] msgc2={"enabled", "compressorMode", "storedPressSetpoint", "clawAuto", "clawGrabAuto", "clawAutoPressure", "clawPressurize", "clawVent"};
   String[] datac2={str(enabled), str(compressorMode), nf(storedPressureSetpoint, 1, 3), str(clawAuto), str(clawGrabAuto), nf(clawAutoPressure, 1, 2), nf(clawPressurize, 1, 3), str(clawVent)};
-  dispTelem(msgc2, datac2, width*15/16, height/4, width/8-1, height/2, 14, color(230, 240, 240));
+  dispTelem(msgc2, datac2, width*15/16, height/4, width/8-1, height/2, 14, color(240, 240, 240));
 
 
   //left
@@ -249,7 +252,7 @@ void draw() {
   dispTelem(msgt1, datat1, width*13/16, 3*height/4, width/8-1, height/2, 14, (millis()-wifiReceivedMillis>wifiRetryPingTime)?color(255, 200, 200):color(255, 255, 255));
 
   //right
-  String[] msgt2={"ping", "main voltage", "stored pressure", "working pressure", "claw pressure", "compressing", "clawPressValveState", "clawVentValveState", "compressorDuty", "compressorOverDuty"};
+  String[] msgt2={"ping", "main voltage", "stored press", "working press", "claw press", "compressing", "clawPressValveState", "clawVentValveState", "compressorDuty", "compressorOverDuty"};
   String[] datat2={nf(wifiPing, 1, 0), nf(mainVoltage, 1, 3), nf(storedPressure, 1, 3), nf(workingPressure, 1, 3), nf(clawPressure, 1, 3), str(compressing), nf(clawPressurizeValveState, 1, 3), str(clawVentValveState), nf(compressorDuty, 1, 5), str(isCompressorOverDutyCycle)};
   dispTelem(msgt2, datat2, width*15/16, 3*height/4, width/8-1, height/2, 14, (millis()-wifiReceivedMillis>wifiRetryPingTime)?color(255, 200, 200):color(255, 255, 255));
 
