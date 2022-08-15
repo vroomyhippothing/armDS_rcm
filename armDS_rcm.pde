@@ -5,7 +5,7 @@
  
  */
 int wifiPort=25210;
-String wifiIP="192.168.43.52";
+String wifiIP="192.168.137.2";
 static final int wifiRetryPingTime=200;
 final int workingPressureConstant=60; //setting of regulator
 final float compressorDutyCycleLimit=9; // rating of compressor (%)
@@ -47,7 +47,7 @@ Button clawAutoButton;
 boolean clawAuto=true;
 
 DialKnob clawPressureDialKnob;
-float clawAutoPressure=30;
+float clawAutoPressure=0;
 
 DialKnob storedPressureSetpointDialKnob;
 float storedPressureSetpoint=110;
