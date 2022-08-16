@@ -5,7 +5,7 @@
  
  */
 int wifiPort=25210;
-String wifiIP="192.168.137.166";
+String wifiIP="192.168.137.253";
 static final int wifiRetryPingTime=200;
 final int workingPressureConstant=60; //setting of regulator
 final float compressorDutyCycleLimit=9; // rating of compressor (%)
@@ -91,7 +91,7 @@ void setup() {
   storedDialBackground.add(new DialColorConfig(0, workingPressureConstant, color(255, 255, 0)));
   storedDialBackground.add(new DialColorConfig(workingPressureConstant, 120, color(0, 255, 0)));
   storedDialBackground.add(new DialColorConfig(120, 140, color(255, 80, 40)));
-  storedPressureDial=new Dial(int(width*.695), int(height*.68), width/10-3, "stored psi", 0, 120, 140, 2, 10, 20, storedDialBackground);
+  storedPressureDial=new Dial(int(width*.695), int(height*.68), width/10-3, "stored psi", 0, 120, 140, 2, 10, 20, storedDialBackground, 0.1);
 
   storedPressureSetpointDialKnob=new DialKnob(storedPressureDial.xPos, storedPressureDial.yPos, storedPressureDial.size, storedPressureDial.min, storedPressureDial.realMax, int(storedPressureDial.realMax*180.0/storedPressureDial.max), color(200, 25, 255, 150), -compressorSetpointHysteresis, 0);
 
@@ -100,15 +100,15 @@ void setup() {
   compressorDutyBackground.add(new DialColorConfig(0, int(compressorDutyCycleLimit)-4, color(0, 255, 0)));
   compressorDutyBackground.add(new DialColorConfig(int(compressorDutyCycleLimit-compressorDutyCycleBounds), int(compressorDutyCycleLimit+compressorDutyCycleBounds), color(255, 255, 0)));
   compressorDutyBackground.add(new DialColorConfig(int(compressorDutyCycleLimit)+4, 100, color(255, 155, 155)));
-  compressorDutyDial=new Dial(int(width*.722), int(height*.818), width/19, "duty %", 0, 50, 50, 1, 10, 10, compressorDutyBackground);
+  compressorDutyDial=new Dial(int(width*.722), int(height*.818), width/19, "duty %", 0, 50, 50, 1, 10, 10, compressorDutyBackground, 1);
 
 
 
   ArrayList<DialColorConfig> workingDialBackground=new ArrayList<DialColorConfig>();
   workingDialBackground.add(new DialColorConfig(workingPressureConstant-10, workingPressureConstant, color(0, 255, 0)));
   workingDialBackground.add(new DialColorConfig(workingPressureConstant, workingPressureConstant+10, color(255, 40, 40)));
-  workingPressureDial=new Dial(int(width*.695), int(height*.49), width/10-3, "working psi", 0, workingPressureConstant, workingPressureConstant+10, 1, 10, 10, workingDialBackground);
-  clawPressureDial=new Dial(int(width*.695), int(width/20+height*.01), width/10-3, "claw psi", 0, workingPressureConstant, workingPressureConstant+10, 1, 10, 10, null);
+  workingPressureDial=new Dial(int(width*.695), int(height*.49), width/10-3, "working psi", 0, workingPressureConstant, workingPressureConstant+10, 1, 10, 10, workingDialBackground, 1);
+  clawPressureDial=new Dial(int(width*.695), int(width/20+height*.01), width/10-3, "claw psi", 0, workingPressureConstant, workingPressureConstant+10, 1, 10, 10, null, 1);
 
   clawPressureDialKnob=new DialKnob(clawPressureDial.xPos, clawPressureDial.yPos, clawPressureDial.size, clawPressureDial.min, clawPressureDial.realMax, int(clawPressureDial.realMax*180.0/clawPressureDial.max), color(255, 0, 255, 150), -1, 1);
 
