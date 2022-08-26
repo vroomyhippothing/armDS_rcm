@@ -5,7 +5,7 @@
  
  */
 int wifiPort=25210;
-String wifiIP="192.168.137.101";
+String wifiIP="192.168.137.176";
 static final int wifiRetryPingTime=200;
 final int workingPressureConstant=60; //setting of regulator
 final float compressorDutyCycleLimit=9; // rating of compressor (%)
@@ -13,8 +13,7 @@ final float compressorDutyCycleBounds=4; // how far from dutyCycleLimit does the
 final int compressorSetpointHysteresis=15; // difference between when the compressor turns on and when it turns off
 final float pressureSwitchVal=115;//what's the lowest pressure where the pressure switch might shut off the compressor and prevent the software from having full control
 final String gamepadName ="Controller (XBOX 360 For Windows)";
-final float clawAutoPressureGamepadSpeed=0.25;
-final float clawManRateGamepadSpeed=0.0025;
+final float clawAutoPressureGamepadSpeed=0.33;
 /////////////////////////add interface elements and variables here
 EnableSwitch enableSwitch;
 boolean enabled=false;
@@ -25,7 +24,7 @@ public static class CompressorMode {
   static byte Normal=1;
   static byte Override=0;
 }
-byte compressorMode=CompressorMode.Normal;
+byte compressorMode=CompressorMode.Off;
 boolean compressing=false;
 
 Dial storedPressureDial;
@@ -118,9 +117,9 @@ void setup() {
   clawPressureDialKnob=new DialKnob(clawPressureDial.xPos, clawPressureDial.yPos, clawPressureDial.size, clawPressureDial.min, clawPressureDial.realMax, int(clawPressureDial.realMax*180.0/clawPressureDial.max), color(255, 0, 255, 150), -1, 1);
 
   clawRateSlider=new Slider(int(width*.695), height*.2975, height*.12, width*.03, 0, 1, color(0, 60, 0), color(255), null, 0, 0, 0, 0, false, false);
-  clawVentButton=new Button(width*.66, height*.25, height*.05, color(100, 0, 0), color(200, 0, 0), "Button 4", 'k', false, false, "vent");
-  clawPresButton=new Button(width*.73, height*.25, height*.05, color(0, 100, 0), color(0, 200, 0), "Button 5", ';', false, false, "press");
-  clawAutoButton=new Button(width*.73, height*.32, height*.05, color(50, 50, 200), color(200, 0, 200), null, 'p', false, false, "auto (p)");
+  clawVentButton=new Button(width*.66, height*.25, height*.05, color(100, 0, 0), color(200, 0, 0), "Button 4", 'k', false, false, "vent (k)");
+  clawPresButton=new Button(width*.73, height*.25, height*.05, color(0, 100, 0), color(0, 200, 0), "Button 5", ';', false, false, "press (;)");
+  clawAutoButton=new Button(width*.73, height*.32, height*.05, color(50, 50, 200), color(200, 0, 200), "Button 3", 'p', false, false, "auto (p)");
   clawGrabButton=new Button(width*.68, height*.312, height*.075, color(25, 100, 25), color(255, 70, 255), null, 'i', false, false, "grab (i)");
 }
 void draw() {
@@ -175,19 +174,18 @@ void draw() {
   clawPressureDial.run(clawPressure);
   storedPressureDial.run(storedPressure);
 
-  if (compressorMode!=CompressorMode.Override) {
-    storedPressureSetpoint=storedPressureSetpointDialKnob.run(storedPressureSetpoint);
-    pushStyle(); //display knob setpoint value as text
-    textSize(20);
-    if (storedPressureSetpoint>=pressureSwitchVal) {
-      fill(255, 0, 0);
-    } else {
-      fill(180, 0, 200);
-    }
-    textAlign(CENTER, CENTER);
-    text(nf(storedPressureSetpoint, 1, 1), width*.69, height*.70);
-    popStyle();
+  storedPressureSetpoint=storedPressureSetpointDialKnob.run(storedPressureSetpoint);
+  pushStyle(); //display knob setpoint value as text
+  textSize(20);
+  if (storedPressureSetpoint>=pressureSwitchVal) {
+    fill(255, 0, 0);
+  } else {
+    fill(180, 0, 200);
   }
+  textAlign(CENTER, CENTER);
+  text(nf(storedPressureSetpoint, 1, 1), width*.69, height*.70);
+  popStyle();
+
   clawAutoButton.setVal(clawAuto);
   clawAuto=clawAutoButton.run();
   if (clawAuto) { //automatic pressure control
@@ -289,6 +287,8 @@ void WifiDataToSend() {
   sendFl(clawRate);
   sendBl(clawPres);
   sendBl(clawVent);
+  sendFl(0.4);//pressureDeadzone
+  sendFl(0.067);//autoP
 }
 
 void mouseWheel(MouseEvent event) {
