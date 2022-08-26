@@ -5,7 +5,7 @@
  
  */
 int wifiPort=25210;
-String wifiIP="192.168.137.253";
+String wifiIP="192.168.137.101";
 static final int wifiRetryPingTime=200;
 final int workingPressureConstant=60; //setting of regulator
 final float compressorDutyCycleLimit=9; // rating of compressor (%)
@@ -13,6 +13,8 @@ final float compressorDutyCycleBounds=4; // how far from dutyCycleLimit does the
 final int compressorSetpointHysteresis=15; // difference between when the compressor turns on and when it turns off
 final float pressureSwitchVal=115;//what's the lowest pressure where the pressure switch might shut off the compressor and prevent the software from having full control
 final String gamepadName ="Controller (XBOX 360 For Windows)";
+final float clawAutoPressureGamepadSpeed=0.25;
+final float clawManRateGamepadSpeed=0.0025;
 /////////////////////////add interface elements and variables here
 EnableSwitch enableSwitch;
 boolean enabled=false;
@@ -38,10 +40,11 @@ float clawPressure=0;
 Button clawVentButton;
 boolean clawVent=false;
 
-Slider clawPressurizeSlider;
-float clawPressurize=0;
+Button clawPresButton;
+boolean clawPres=false;
 
-Button clawDumpButton;
+Slider clawRateSlider;
+float clawRate=0;
 
 Button clawAutoButton;
 boolean clawAuto=true;
@@ -62,7 +65,9 @@ float timeCompressorOn=0;  // calculated in driverstation
 float timeCompressorOff=0; // calculated in driverstation
 
 boolean isCompressorOverDutyCycle=false;
-float clawPressurizeValveState=0;
+
+float clawRateValveState=0;
+boolean clawPresValveState=false;
 boolean clawVentValveState=false;
 
 float mainVoltage=0.0;
@@ -112,10 +117,10 @@ void setup() {
 
   clawPressureDialKnob=new DialKnob(clawPressureDial.xPos, clawPressureDial.yPos, clawPressureDial.size, clawPressureDial.min, clawPressureDial.realMax, int(clawPressureDial.realMax*180.0/clawPressureDial.max), color(255, 0, 255, 150), -1, 1);
 
-  clawPressurizeSlider=new Slider(width*.68, height*.2975, height*.12, width*.03, 0, 1, color(0, 60, 0), color(255), null, 0, 0, .03, 0, false, false);
-  clawVentButton=new Button(width*.73, height*.22, height*.05, color(100, 0, 0), color(200, 0, 0), "Button 5", 'v', true, false, "vent (v)");
-  clawDumpButton=new Button(width*.737, height*.395, height*.04, color(150, 0, 0), color(255, 0, 0), null, ';', false, false, "DUMP    ( ; )");
-  clawAutoButton=new Button(width*.72, height*.3, height*.05, color(50, 50, 200), color(200, 0, 200), null, 'p', false, false, "auto (p)");
+  clawRateSlider=new Slider(int(width*.695), height*.2975, height*.12, width*.03, 0, 1, color(0, 60, 0), color(255), null, 0, 0, 0, 0, false, false);
+  clawVentButton=new Button(width*.66, height*.25, height*.05, color(100, 0, 0), color(200, 0, 0), "Button 4", 'k', false, false, "vent");
+  clawPresButton=new Button(width*.73, height*.25, height*.05, color(0, 100, 0), color(0, 200, 0), "Button 5", ';', false, false, "press");
+  clawAutoButton=new Button(width*.73, height*.32, height*.05, color(50, 50, 200), color(200, 0, 200), null, 'p', false, false, "auto (p)");
   clawGrabButton=new Button(width*.68, height*.312, height*.075, color(25, 100, 25), color(255, 70, 255), null, 'i', false, false, "grab (i)");
 }
 void draw() {
@@ -183,46 +188,47 @@ void draw() {
     text(nf(storedPressureSetpoint, 1, 1), width*.69, height*.70);
     popStyle();
   }
+  clawAutoButton.setVal(clawAuto);
+  clawAuto=clawAutoButton.run();
+  if (clawAuto) { //automatic pressure control
+    clawAutoPressure-=clawAutoPressureGamepadSpeed*pow(gamepadVal("Z Axis", 0), 3);
+    clawAutoPressure=constrain(clawAutoPressure, clawPressureDialKnob.min, clawPressureDialKnob.max);
+    clawAutoPressure=clawPressureDialKnob.run(clawAutoPressure);
+    pushStyle(); //display claw auto pressure setpoint as text on the knob
+    textSize(20);
+    fill(180, 0, 180);
+    textAlign(CENTER, CENTER);
+    text(nf(clawAutoPressure, 1, 1), width*.695, height*.13);
+    popStyle();
 
-  //claw control UI logic
-  if (clawDumpButton.run()) { // the dump button is on the driverstation side, it is identical to:
-    clawAuto=false; //setting the claw to manual
-    //and opening both valves
-    clawPressurize=1;
-    clawVent=true;
-    if (clawDumpButton.justPressed()) {
-      compressorMode=CompressorMode.Off; //and turning the compressor off.
+    clawGrabButton.setVal(clawGrabAuto); //set button to the state of the variable in case the variable has been changed
+
+    if (gamepadButton(clawPresButton.gpButton, false)) {
+      clawGrabButton.setVal(true);
     }
-    clawGrabAuto=false; //in regular manual mode, this variable is reset so when auto grab is selected the claw starts open.
-  } else { //not dumping pressure
-    clawAutoButton.setVal(clawAuto);
-    clawAuto=clawAutoButton.run();
-    if (clawAuto) { //automatic pressure control
-      clawAutoPressure=clawPressureDialKnob.run(clawAutoPressure);
-      pushStyle(); //display claw auto pressure setpoint as text on the knob
-      textSize(20);
-      fill(180, 0, 180);
-      textAlign(CENTER, CENTER);
-      text(nf(clawAutoPressure, 1, 1), width*.695, height*.13);
-      popStyle();
-
-      clawGrabButton.setVal(clawGrabAuto); //set button to the state of the variable in case the variable has been changed
-
-      if (gamepadVal("Z Axis", 0)<-.5) {
-        clawGrabButton.setVal(true);
-      }
-      if (gamepadButton(clawVentButton.gpButton, false)) {
-        clawGrabButton.setVal(false);
-      }
-
-      clawGrabAuto=clawGrabButton.run();
-    } else { //manual pressure control
-      clawGrabAuto=false;
-      clawPressurize=constrain(-gamepadVal("Z Axis", 0), 0, 1);
-      clawPressurize=clawPressurizeSlider.run(clawPressurize);
-      clawVent=clawVentButton.run();
+    if (gamepadButton(clawVentButton.gpButton, false)) {
+      clawGrabButton.setVal(false);
     }
+
+    clawGrabAuto=clawGrabButton.run();
+  } else { //manual pressure control
+    clawGrabAuto=false;
+
+    clawRate=abs(gamepadVal("Z Axis", 0));
+    if (gamepadVal("Z Axis", 0)>0.01) {
+      clawVentButton.val=true;
+      clawPresButton.val=false;
+    }
+    if (gamepadVal("Z Axis", 0)<-0.01) {
+      clawVentButton.val=false;
+      clawPresButton.val=true;
+    }
+    clawRate=clawRateSlider.run(clawRate);
+
+    clawVent=clawVentButton.run();
+    clawPres=clawPresButton.run();
   }
+
 
   //calculate compressor on and off times
   if (keyPressed&&key=='r') {
@@ -241,8 +247,8 @@ void draw() {
   dispTelem(msgc1, datac1, width*13/16, height/4, width/8-1, height/2, 14, color(240, 240, 240));
 
   //right
-  String[] msgc2={"enabled", "compressorMode", "storedPressSetpoint", "clawAuto", "clawGrabAuto", "clawAutoPressure", "clawPressurize", "clawVent"};
-  String[] datac2={str(enabled), str(compressorMode), nf(storedPressureSetpoint, 1, 3), str(clawAuto), str(clawGrabAuto), nf(clawAutoPressure, 1, 2), nf(clawPressurize, 1, 3), str(clawVent)};
+  String[] msgc2={"enabled", "compressorMode", "storedPressSetpoint", "clawAuto", "clawGrabAuto", "clawAutoPressure", "clawRate", "clawPres", "clawVent"};
+  String[] datac2={str(enabled), str(compressorMode), nf(storedPressureSetpoint, 1, 3), str(clawAuto), str(clawGrabAuto), nf(clawAutoPressure, 1, 2), nf(clawRate, 1, 3), str(clawPres), str(clawVent)};
   dispTelem(msgc2, datac2, width*15/16, height/4, width/8-1, height/2, 14, color(240, 240, 240));
 
 
@@ -252,8 +258,8 @@ void draw() {
   dispTelem(msgt1, datat1, width*13/16, 3*height/4, width/8-1, height/2, 14, (millis()-wifiReceivedMillis>wifiRetryPingTime)?color(255, 200, 200):color(255, 255, 255));
 
   //right
-  String[] msgt2={"ping", "main voltage", "stored press", "working press", "claw press", "compressing", "clawPressValveState", "clawVentValveState", "compressorDuty", "compressorOverDuty"};
-  String[] datat2={nf(wifiPing, 1, 0), nf(mainVoltage, 1, 3), nf(storedPressure, 1, 3), nf(workingPressure, 1, 3), nf(clawPressure, 1, 3), str(compressing), nf(clawPressurizeValveState, 1, 3), str(clawVentValveState), nf(compressorDuty, 1, 5), str(isCompressorOverDutyCycle)};
+  String[] msgt2={"ping", "main voltage", "stored press", "working press", "claw press", "compressing", "clawRateValveState", "clawPresValveState", "clawVentValveState", "compressorDuty", "compressorOverDuty"};
+  String[] datat2={nf(wifiPing, 1, 0), nf(mainVoltage, 1, 3), nf(storedPressure, 1, 3), nf(workingPressure, 1, 3), nf(clawPressure, 1, 3), str(compressing), nf(clawRateValveState, 1, 3), str(clawPresValveState), str(clawVentValveState), nf(compressorDuty, 1, 5), str(isCompressorOverDutyCycle)};
   dispTelem(msgt2, datat2, width*15/16, 3*height/4, width/8-1, height/2, 14, (millis()-wifiReceivedMillis>wifiRetryPingTime)?color(255, 200, 200):color(255, 255, 255));
 
 
@@ -268,7 +274,8 @@ void WifiDataToRecv() {
   clawPressure=recvFl();
   compressing=recvBl();
   compressorDuty=recvFl();
-  clawPressurizeValveState=recvFl();
+  clawRateValveState=recvFl();
+  clawPresValveState=recvBl();
   clawVentValveState=recvBl();
   isCompressorOverDutyCycle=recvBl();
 }
@@ -279,7 +286,8 @@ void WifiDataToSend() {
   sendBl(clawAuto);
   sendBl(clawGrabAuto);
   sendFl(clawAutoPressure);
-  sendFl(clawPressurize);
+  sendFl(clawRate);
+  sendBl(clawPres);
   sendBl(clawVent);
 }
 
