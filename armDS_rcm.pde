@@ -5,7 +5,7 @@
  
  */
 int wifiPort=25210;
-String wifiIP="73.11.18.3";
+String wifiIP="192.168.4.1";
 static final int wifiRetryPingTime=200;
 final int workingPressureConstant=60; //setting of regulator
 final float compressorDutyCycleLimit=9; // rating of compressor (%)
@@ -125,7 +125,7 @@ void setup() {
 void draw() {
   background(200);
 
-  if ((keyboardCtrl.isPressed('[')&&keyboardCtrl.isPressed('['))||gamepadButton("Button 7", false)) { //enable
+  if ((keyboardCtrl.isPressed('[')&&keyboardCtrl.isPressed(']'))||gamepadButton("Button 7", false)) { //enable
     enabled=true;
   }
   if (keyboardCtrl.isPressed(' ')||keyboardCtrl.isPressed(ENTER)||gamepadButton("Button 6", false)) { //disable
@@ -287,8 +287,8 @@ void WifiDataToSend() {
   sendFl(clawRate);
   sendBl(clawPres);
   sendBl(clawVent);
-  sendFl(0.4);//pressureDeadzone
-  sendFl(0.067);//autoP
+  sendFl(0.45);//pressureDeadzone
+  sendFl(0.06);//autoP
 }
 
 void mouseWheel(MouseEvent event) {
