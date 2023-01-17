@@ -4,6 +4,11 @@
  * GameControlPlus 
  
  */
+boolean stress=true;
+float stressGrabTime=1;
+float stressReleaseTime=2;
+int stressCount=0;
+
 int wifiPort=25210;
 String wifiIP="192.168.4.1";
 static final int wifiRetryPingTime=200;
@@ -198,6 +203,38 @@ void draw() {
     textAlign(CENTER, CENTER);
     text(nf(clawAutoPressure, 1, 1), width*.695, height*.13);
     popStyle();
+
+    if (stress) {
+      if (enabled) {
+        if ((millis()%(1000*stressGrabTime+1000*stressReleaseTime))<stressGrabTime*1000) {
+          if (clawGrabAuto==false) {
+            stressCount++;
+          }
+          clawGrabAuto=true;
+          pushStyle();
+          textSize(20);
+          fill(180, 0, 0);
+          textAlign(CENTER, CENTER);
+          text("stress grab, count: "+str(stressCount), width*.2, height*.5);
+          popStyle();
+        } else {
+          clawGrabAuto=false;
+          pushStyle();
+          textSize(20);
+          fill(180, 0, 0);
+          textAlign(CENTER, CENTER);
+          text("stress release, count: "+str(stressCount), width*.2, height*.5);
+          popStyle();
+        }
+      } else {// disabled, stress armemd
+        pushStyle();
+        textSize(20);
+        fill(180, 0, 0);
+        textAlign(CENTER, CENTER);
+        text("stress mode armed on, grab: "+str(stressGrabTime)+" release: "+str(stressReleaseTime)+" count: "+str(stressCount), width*.2, height*.5);
+        popStyle();
+      }
+    }
 
     clawGrabButton.setVal(clawGrabAuto); //set button to the state of the variable in case the variable has been changed
 
